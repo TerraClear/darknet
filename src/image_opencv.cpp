@@ -93,9 +93,73 @@ extern "C" {
 //    IplImage *mat_to_ipl(cv::Mat mat);
 
 
+mat_cv *load_image_mat_multi_cv(const char *filename, int channels)
+{
+    try 
+    {
+        cv::Mat *mat_ptr = new cv::Mat();
+        cv::Mat &mat = *mat_ptr;
+        
+        cv::Mat mats[channels];
+        //load and merge channels
+        int loaded = 0;
+        for (int c = 0; c < channels; c++)
+        {
+            //construct file name.. 
+            std::string filename_str = filename;
+            int ext_start = filename_str.find_last_of('.');
+            std::string file_base = filename_str.substr(0, ext_start);
+            std::string file_ext =  filename_str.substr(ext_start, filename_str.size());
+
+            std::stringstream strstrm;
+            strstrm << file_base << " B" << c+1 << file_ext; 
+
+            filename_str = strstrm.str();
+            mats[c] = cv::imread(filename_str, cv::IMREAD_GRAYSCALE);
+
+            if (mats[c].empty())
+            {
+                delete mat_ptr;
+                std::string shrinked_filename = filename_str;
+                if (shrinked_filename.length() > 1024) 
+                {
+                    shrinked_filename += "name is too long: ";
+                    shrinked_filename.resize(1024);
+                }
+                
+                std::cerr << "Cannot load image " << shrinked_filename << std::endl;
+                std::ofstream bad_list("bad.list", std::ios::out | std::ios::app);
+                bad_list << shrinked_filename << std::endl;
+                return NULL;
+            }
+            loaded++;
+        }
+
+        //merge channels
+        if (loaded == channels)
+        {
+            cv::merge(mats, channels, mat);
+        }
+        else
+        {
+            std::cerr << "Could not load x" << channels << "channels"  << std::endl;
+            std::cerr << "\t" << filename << std::endl;
+            return NULL;
+        }
+        
+
+        return (mat_cv *)mat_ptr;
+
+    }
+    catch (...) {
+        std::cerr << "OpenCV exception: load_image_mat_cv \n";
+    }
+    return NULL;
+}
 mat_cv *load_image_mat_cv(const char *filename, int flag)
 {
-    try {
+    try 
+    {
         cv::Mat *mat_ptr = new cv::Mat();
         cv::Mat &mat = *mat_ptr;
         mat = cv::imread(filename, flag);
@@ -103,18 +167,23 @@ mat_cv *load_image_mat_cv(const char *filename, int flag)
         {
             delete mat_ptr;
             std::string shrinked_filename = filename;
-            if (shrinked_filename.length() > 1024) {
+            if (shrinked_filename.length() > 1024) 
+            {
                 shrinked_filename += "name is too long: ";
                 shrinked_filename.resize(1024);
             }
+            
             cerr << "Cannot load image " << shrinked_filename << std::endl;
             std::ofstream bad_list("bad.list", std::ios::out | std::ios::app);
             bad_list << shrinked_filename << std::endl;
             //if (check_mistakes) getchar();
             return NULL;
         }
-        if (mat.channels() == 3) cv::cvtColor(mat, mat, cv::COLOR_RGB2BGR);
-        else if (mat.channels() == 4) cv::cvtColor(mat, mat, cv::COLOR_RGBA2BGRA);
+        
+        if (mat.channels() == 3) 
+            cv::cvtColor(mat, mat, cv::COLOR_RGB2BGR);
+        else if (mat.channels() == 4) 
+            cv::cvtColor(mat, mat, cv::COLOR_RGBA2BGRA);
 
         return (mat_cv *)mat_ptr;
     }
@@ -127,16 +196,26 @@ mat_cv *load_image_mat_cv(const char *filename, int flag)
 
 cv::Mat load_image_mat(char *filename, int channels)
 {
-    int flag = cv::IMREAD_UNCHANGED;
-    if (channels == 0) flag = cv::IMREAD_COLOR;
-    else if (channels == 1) flag = cv::IMREAD_GRAYSCALE;
-    else if (channels == 3) flag = cv::IMREAD_COLOR;
-    else {
+    int flag = cv::IMREAD_GRAYSCALE;
+    int load_channels = 1;
+    if (channels == 0) 
+        flag = cv::IMREAD_COLOR;
+    else if (channels == 1) 
+        flag = cv::IMREAD_GRAYSCALE;
+    else if (channels == 3) 
+       flag = cv::IMREAD_COLOR;
+    else if (channels > 3) 
+    {
+        flag = cv::IMREAD_GRAYSCALE;
+        load_channels = channels;
+    }
+    else 
+    {
         fprintf(stderr, "OpenCV can't force load with %d channels\n", channels);
     }
-    //flag |= IMREAD_IGNORE_ORIENTATION;    // un-comment it if you want
 
-    cv::Mat *mat_ptr = (cv::Mat *)load_image_mat_cv(filename, flag);
+    cv::Mat *mat_ptr = (load_channels == 1) ? (cv::Mat *)load_image_mat_cv(filename, flag) 
+                                        : (cv::Mat *)load_image_mat_multi_cv(filename, load_channels);
 
     if (mat_ptr == NULL) {
         return cv::Mat();
@@ -167,7 +246,7 @@ image load_image_resize(char *filename, int w, int h, int c, image *im)
 
         *im = mat_to_image(loaded_image);
 
-        cv::Mat resized(h, w, CV_8UC3);
+        cv::Mat resized(h, w, CV_8UC(c));
         cv::resize(loaded_image, resized, cv::Size(w, h), 0, 0, cv::INTER_LINEAR);
         out = mat_to_image(resized);
     }
@@ -1141,8 +1220,17 @@ image image_data_augmentation(mat_cv* mat, int w, int h,
     float dhue, float dsat, float dexp,
     int blur, int num_boxes, float *truth)
 {
-    image out;
-    try {
+    image out;    
+
+    if (mat->channels() > 3 )
+    {
+        out = mat_to_image(*(cv::Mat*)mat);
+        return out;
+    }
+
+    try 
+    {
+
         cv::Mat img = *(cv::Mat *)mat;
 
         // crop

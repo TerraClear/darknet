@@ -193,48 +193,36 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
         time = what_time_is_it_now();
         pthread_join(load_thread, 0);
         train = buffer;
-        if (net.track) {
+        if (net.track) 
+        {
             net.sequential_subdivisions = get_current_seq_subdivisions(net);
             args.threads = net.sequential_subdivisions * ngpus;
             printf(" sequential_subdivisions = %d, sequence = %d \n", net.sequential_subdivisions, get_sequence_value(net));
         }
-        load_thread = load_data(args);
 
-        /*
-        int k;
-        for(k = 0; k < l.max_boxes; ++k){
-        box b = float_to_box(train.y.vals[10] + 1 + k*5);
-        if(!b.x) break;
-        fprintf(stderr, "loaded: %f %f %f %f\n", b.x, b.y, b.w, b.h);
-        }
-        image im = float_to_image(448, 448, 3, train.X.vals[10]);
-        int k;
-        for(k = 0; k < l.max_boxes; ++k){
-        box b = float_to_box(train.y.vals[10] + 1 + k*5);
-        fprintf(stderr, "%d %d %d %d\n", truth.x, truth.y, truth.w, truth.h);
-        draw_bbox(im, b, 8, 1,0,0);
-        }
-        save_image(im, "truth11");
-        */
+        load_thread = load_data(args);
 
         fprintf(stderr, "Loaded: %lf seconds\n", (what_time_is_it_now() - time));
 
         time = what_time_is_it_now();
         float loss = 0;
+
 #ifdef GPU
-        if (ngpus == 1) {
+        if (ngpus == 1) 
+        {
             int wait_key = (dont_show) ? 0 : 1;
             loss = train_network_waitkey(net, train, wait_key);
         }
-        else {
+        else 
+        {
             loss = train_networks(nets, ngpus, train, 4);
         }
 #else
         loss = train_network(net, train);
 #endif
+
         if (avg_loss < 0 || avg_loss != avg_loss) avg_loss = loss;    // if(-inf or nan)
         avg_loss = avg_loss*.9 + loss*.1;
-
         i = get_current_batch(net);
 
         int calc_map_for_each = 4 * train_images_num / (net.batch * net.subdivisions);  // calculate mAP for each 4 Epochs

@@ -17,6 +17,8 @@ typedef struct write_cv write_cv;
 
 // cv::Mat
 mat_cv *load_image_mat_cv(const char *filename, int flag);
+mat_cv *load_image_mat_multi_cv(const char *filename, int channels);
+
 image load_image_cv(char *filename, int channels);
 image load_image_resize(char *filename, int w, int h, int c, image *im);
 int get_width_mat(mat_cv *mat);

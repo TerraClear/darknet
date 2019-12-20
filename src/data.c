@@ -815,7 +815,6 @@ data load_data_detection(int n, char **paths, int m, int w, int h, int c, int bo
     else random_paths = get_random_paths(paths, n, m);
 
     int mixup = use_mixup ? random_gen() % 2 : 0;
-    //printf("\n mixup = %d \n", mixup);
     if (mixup) {
         if (track) mixup_random_paths = get_sequential_paths(paths, n, m, mini_batch, augment_speed);
         else mixup_random_paths = get_random_paths(paths, n, m);
@@ -834,15 +833,27 @@ data load_data_detection(int n, char **paths, int m, int w, int h, int c, int bo
 
     d.y = make_matrix(n, 5*boxes);
     int i_mixup = 0;
-    for (i_mixup = 0; i_mixup <= mixup; i_mixup++) {
-        if (i_mixup) augmentation_calculated = 0;
-        for (i = 0; i < n; ++i) {
+    for (i_mixup = 0; i_mixup <= mixup; i_mixup++) 
+    {
+        if (i_mixup) 
+            augmentation_calculated = 0;
+        
+        for (i = 0; i < n; ++i) 
+        {
             float *truth = (float*)calloc(5 * boxes, sizeof(float));
             const char *filename = (i_mixup) ? mixup_random_paths[i] : random_paths[i];
 
             int flag = (c >= 3);
             mat_cv *src;
-            src = load_image_mat_cv(filename, flag);
+            if ( c > 3)
+            {
+                src = load_image_mat_multi_cv(filename, c);
+            }
+            else
+            {
+                src = load_image_mat_cv(filename, flag);
+            }
+            
             if (src == NULL) {
                 if (check_mistakes) getchar();
                 continue;
@@ -915,7 +926,7 @@ data load_data_detection(int n, char **paths, int m, int w, int h, int c, int bo
 
 
             fill_truth_detection(filename, boxes, truth, classes, flip, dx, dy, 1. / sx, 1. / sy, w, h);
-
+    
             image ai = image_data_augmentation(src, w, h, pleft, ptop, swidth, sheight, flip, dhue, dsat, dexp,
                 blur, boxes, d.y.vals[i]);
 
