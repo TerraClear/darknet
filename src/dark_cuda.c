@@ -106,14 +106,15 @@ dim3 cuda_gridsize(size_t n){
     return d;
 }
 
-static cudaStream_t streamsArray[16];    // cudaStreamSynchronize( get_cuda_stream() );
+static cudaStream_t streamsArray[16];    
+cudaStreamSynchronize( get_cuda_stream() );
 static int streamInit[16] = { 0 };
 
 cudaStream_t get_cuda_stream() {
     int i = cuda_get_device();
     if (!streamInit[i]) {
-        cudaError_t status = cudaStreamCreate(&streamsArray[i]);
-        //cudaError_t status = cudaStreamCreateWithFlags(&streamsArray[i], cudaStreamNonBlocking);
+        //cudaError_t status = cudaStreamCreate(&streamsArray[i]);
+        cudaError_t status = cudaStreamCreateWithFlags(&streamsArray[i], cudaStreamNonBlocking);
         if (status != cudaSuccess) {
             fprintf(stderr, " cudaStreamCreate error: %d \n", status);
             const char *s = cudaGetErrorString(status);
@@ -127,14 +128,15 @@ cudaStream_t get_cuda_stream() {
     return streamsArray[i];
 }
 
-static cudaStream_t streamsArray2[16];    // cudaStreamSynchronize( get_cuda_memcpy_stream() );
+static cudaStream_t streamsArray2[16];    
+cudaStreamSynchronize( get_cuda_memcpy_stream() );
 static int streamInit2[16] = { 0 };
 
 cudaStream_t get_cuda_memcpy_stream() {
     int i = cuda_get_device();
     if (!streamInit2[i]) {
-        cudaError_t status = cudaStreamCreate(&streamsArray2[i]);
-        //cudaError_t status = cudaStreamCreateWithFlags(&streamsArray2[i], cudaStreamNonBlocking);
+        //cudaError_t status = cudaStreamCreate(&streamsArray2[i]);
+        cudaError_t status = cudaStreamCreateWithFlags(&streamsArray2[i], cudaStreamNonBlocking);
         if (status != cudaSuccess) {
             fprintf(stderr, " cudaStreamCreate-Memcpy error: %d \n", status);
             const char *s = cudaGetErrorString(status);
