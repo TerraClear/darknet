@@ -106,8 +106,7 @@ dim3 cuda_gridsize(size_t n){
     return d;
 }
 
-static cudaStream_t streamsArray[16];    
-cudaStreamSynchronize( get_cuda_stream() );
+static cudaStream_t streamsArray[16];    //cudaStreamSynchronize( get_cuda_stream() );
 static int streamInit[16] = { 0 };
 
 cudaStream_t get_cuda_stream() {
@@ -128,8 +127,7 @@ cudaStream_t get_cuda_stream() {
     return streamsArray[i];
 }
 
-static cudaStream_t streamsArray2[16];    
-cudaStreamSynchronize( get_cuda_memcpy_stream() );
+static cudaStream_t streamsArray2[16];    //cudaStreamSynchronize( get_cuda_memcpy_stream() );
 static int streamInit2[16] = { 0 };
 
 cudaStream_t get_cuda_memcpy_stream() {
