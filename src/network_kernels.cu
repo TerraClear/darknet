@@ -83,7 +83,7 @@ void forward_network_gpu(network net, network_state state)
         }
 */
     }
-    //cudaStreamSynchronize(get_cuda_stream());   // sync CUDA-functions
+    cudaStreamSynchronize(get_cuda_stream());   // sync CUDA-functions
     //cudaDeviceSynchronize();
     //show_total_time();
 }
@@ -192,7 +192,7 @@ void forward_backward_network_gpu(network net, float *x, float *y)
     }
 #endif
     forward_network_gpu(net, state);
-    //cudaStreamSynchronize(get_cuda_stream());
+    cudaStreamSynchronize(get_cuda_stream());
     backward_network_gpu(net, state);
 }
 
