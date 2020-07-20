@@ -167,7 +167,7 @@ $(OBJDIR)%.o: %.c $(DEPS)
 $(OBJDIR)%.o: %.cpp $(DEPS)
 	$(CPP) -std=c++11 $(COMMON) $(CFLAGS) -c $< -o $@
 
-$(OBJDIR)%.o: %.cu $(DEPS)
+$(OBJDIR)%.o: %.cu.cc $(DEPS)
 	$(NVCC) $(ARCH) $(COMMON) --compiler-options "$(CFLAGS)" -c $< -o $@
 
 $(OBJDIR):
