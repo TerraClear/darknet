@@ -8,17 +8,20 @@ void train_tag(char *cfgfile, char *weightfile, int clear)
     float avg_loss = -1;
     char *base = basecfg(cfgfile);
     char* backup_directory = "backup/";
-    fprintf(stderr, "%s\n", base);
+    printf("%s\n", base);
     network net = parse_network_cfg(cfgfile);
     if(weightfile){
         load_weights(&net, weightfile);
     }
-    if(clear) *net.seen = 0;
-    fprintf(stderr, "Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
+    if (clear) {
+        *net.seen = 0;
+        *net.cur_iteration = 0;
+    }
+    printf("Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
     int imgs = 1024;
     list* plist = get_paths("tag/train.list");
     char **paths = (char **)list_to_array(plist);
-    fprintf(stderr, "%d\n", plist->size);
+    printf("%d\n", plist->size);
     int N = plist->size;
     clock_t time;
     pthread_t load_thread;
@@ -55,7 +58,7 @@ void train_tag(char *cfgfile, char *weightfile, int clear)
         train = buffer;
 
         load_thread = load_data_in_thread(args);
-        fprintf(stderr, "Loaded: %lf seconds\n", sec(clock()-time));
+        printf("Loaded: %lf seconds\n", sec(clock()-time));
         time=clock();
         float loss = train_network(net, train);
         if(avg_loss == -1) avg_loss = loss;
@@ -105,7 +108,7 @@ void test_tag(char *cfgfile, char *weightfile, char *filename)
         if(filename){
             strncpy(input, filename, 256);
         }else{
-            fprintf(stderr, "Enter Image Path: ");
+            printf("Enter Image Path: ");
             fflush(stdout);
             input = fgets(input, 256, stdin);
             if(!input) return;
@@ -114,16 +117,16 @@ void test_tag(char *cfgfile, char *weightfile, char *filename)
         image im = load_image_color(input, 0, 0);
         image r = resize_min(im, size);
         resize_network(&net, r.w, r.h);
-        fprintf(stderr, "%d %d\n", r.w, r.h);
+        printf("%d %d\n", r.w, r.h);
 
         float *X = r.data;
         time=clock();
         float *predictions = network_predict(net, X);
         top_predictions(net, 10, indexes);
-        fprintf(stderr, "%s: Predicted in %f seconds.\n", input, sec(clock()-time));
+        printf("%s: Predicted in %f seconds.\n", input, sec(clock()-time));
         for(i = 0; i < 10; ++i){
             int index = indexes[i];
-            fprintf(stderr, "%.1f%%: %s\n", predictions[index]*100, names[index]);
+            printf("%.1f%%: %s\n", predictions[index]*100, names[index]);
         }
         if(r.data != im.data) free_image(r);
         free_image(im);

@@ -22,15 +22,15 @@ region_layer make_region_layer(int batch, int w, int h, int n, int classes, int 
     l.w = w;
     l.classes = classes;
     l.coords = coords;
-    l.cost = (float*)calloc(1, sizeof(float));
-    l.biases = (float*)calloc(n * 2, sizeof(float));
-    l.bias_updates = (float*)calloc(n * 2, sizeof(float));
+    l.cost = (float*)xcalloc(1, sizeof(float));
+    l.biases = (float*)xcalloc(n * 2, sizeof(float));
+    l.bias_updates = (float*)xcalloc(n * 2, sizeof(float));
     l.outputs = h*w*n*(classes + coords + 1);
     l.inputs = l.outputs;
     l.max_boxes = max_boxes;
     l.truths = max_boxes*(5);
-    l.delta = (float*)calloc(batch * l.outputs, sizeof(float));
-    l.output = (float*)calloc(batch * l.outputs, sizeof(float));
+    l.delta = (float*)xcalloc(batch * l.outputs, sizeof(float));
+    l.output = (float*)xcalloc(batch * l.outputs, sizeof(float));
     int i;
     for(i = 0; i < n*2; ++i){
         l.biases[i] = .5;
@@ -63,11 +63,12 @@ void resize_region_layer(layer *l, int w, int h)
     l->outputs = h*w*l->n*(l->classes + l->coords + 1);
     l->inputs = l->outputs;
 
-    l->output = (float*)realloc(l->output, l->batch * l->outputs * sizeof(float));
-    l->delta = (float*)realloc(l->delta, l->batch * l->outputs * sizeof(float));
+    l->output = (float*)xrealloc(l->output, l->batch * l->outputs * sizeof(float));
+    l->delta = (float*)xrealloc(l->delta, l->batch * l->outputs * sizeof(float));
 
 #ifdef GPU
-    if (old_w < w || old_h < h) {
+    //if (old_w < w || old_h < h)
+    {
         cuda_free(l->delta_gpu);
         cuda_free(l->output_gpu);
 
@@ -299,7 +300,7 @@ void forward_region_layer(const region_layer l, network_state state)
             box truth = float_to_box(state.truth + t*5 + b*l.truths);
             int class_id = state.truth[t * 5 + b*l.truths + 4];
             if (class_id >= l.classes) {
-                 fprintf(stderr, " Warning: in txt-labels class_id=%d >= classes=%d in cfg-file. In txt-labels class_id should be [from 0 to %d] \n", class_id, l.classes, l.classes-1);
+                printf("\n Warning: in txt-labels class_id=%d >= classes=%d in cfg-file. In txt-labels class_id should be [from 0 to %d] \n", class_id, l.classes, l.classes-1);
                 getchar();
                 continue; // if label contains class_id more than number of classes in the cfg-file
             }
@@ -310,11 +311,11 @@ void forward_region_layer(const region_layer l, network_state state)
             int best_n = 0;
             i = (truth.x * l.w);
             j = (truth.y * l.h);
-            // fprintf(stderr, "%d %f %d %f\n", i, truth.x*l.w, j, truth.y*l.h);
+            //printf("%d %f %d %f\n", i, truth.x*l.w, j, truth.y*l.h);
             box truth_shift = truth;
             truth_shift.x = 0;
             truth_shift.y = 0;
-            // fprintf(stderr, "index %d %d\n",i, j);
+            //printf("index %d %d\n",i, j);
             for(n = 0; n < l.n; ++n){
                 int index = size*(j*l.w*l.n + i*l.n + n) + b*l.outputs;
                 box pred = get_region_box(l.output, l.biases, n, index, i, j, l.w, l.h);
@@ -326,7 +327,7 @@ void forward_region_layer(const region_layer l, network_state state)
                         pred.h = l.biases[2*n+1]/l.h;
                     }
                 }
-                // fprintf(stderr, "pred: (%f, %f) %f x %f\n", pred.x, pred.y, pred.w, pred.h);
+                //printf("pred: (%f, %f) %f x %f\n", pred.x, pred.y, pred.w, pred.h);
                 pred.x = 0;
                 pred.y = 0;
                 float iou = box_iou(pred, truth_shift);
@@ -336,7 +337,7 @@ void forward_region_layer(const region_layer l, network_state state)
                     best_n = n;
                 }
             }
-            // fprintf(stderr, "%d %f (%f, %f) %f x %f\n", best_n, best_iou, truth.x, truth.y, truth.w, truth.h);
+            //printf("%d %f (%f, %f) %f x %f\n", best_n, best_iou, truth.x, truth.y, truth.w, truth.h);
 
             float iou = delta_region_box(truth, l.output, l.biases, best_n, best_index, i, j, l.w, l.h, l.delta, l.coord_scale);
             if(iou > .5) recall += 1;
@@ -355,12 +356,12 @@ void forward_region_layer(const region_layer l, network_state state)
             ++class_count;
         }
     }
-    // fprintf(stderr, "\n");
+    //printf("\n");
     #ifndef GPU
     flatten(l.delta, l.w*l.h, size*l.n, l.batch, 0);
     #endif
     *(l.cost) = pow(mag_array(l.delta, l.outputs * l.batch), 2);
-     fprintf(stderr, "Region Avg IOU: %f, Class: %f, Obj: %f, No Obj: %f, Avg Recall: %f,  count: %d\n", avg_iou/count, avg_cat/class_count, avg_obj/count, avg_anyobj/(l.w*l.h*l.n*l.batch), recall/count, count);
+    printf("Region Avg IOU: %f, Class: %f, Obj: %f, No Obj: %f, Avg Recall: %f,  count: %d\n", avg_iou/count, avg_cat/class_count, avg_obj/count, avg_anyobj/(l.w*l.h*l.n*l.batch), recall/count, count);
 }
 
 void backward_region_layer(const region_layer l, network_state state)
@@ -446,11 +447,11 @@ void forward_region_layer_gpu(const region_layer l, network_state state)
         softmax_gpu(l.output_gpu+5, l.classes, l.classes + 5, l.w*l.h*l.n*l.batch, 1, l.output_gpu + 5);
     }
 
-    float* in_cpu = (float*)calloc(l.batch * l.inputs, sizeof(float));
+    float* in_cpu = (float*)xcalloc(l.batch * l.inputs, sizeof(float));
     float *truth_cpu = 0;
     if(state.truth){
         int num_truth = l.batch*l.truths;
-        truth_cpu = (float*)calloc(num_truth, sizeof(float));
+        truth_cpu = (float*)xcalloc(num_truth, sizeof(float));
         cuda_pull_array(state.truth, truth_cpu, num_truth);
     }
     cuda_pull_array(l.output_gpu, in_cpu, l.batch*l.inputs);
