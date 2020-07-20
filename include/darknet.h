@@ -34,6 +34,8 @@
 
 #define SECRET_NUM -1234
 
+typedef enum { UNUSED_DEF_VAL } UNUSED_ENUM_TYPE;
+
 #ifdef GPU
 
 #include <cuda_runtime.h>
@@ -692,6 +694,9 @@ typedef struct network {
     layer *layers;
     float *output;
     learning_rate_policy policy;
+    int benchmark_layers;
+    int *total_bbox;
+    int *rewritten_bbox;
 
     float learning_rate;
     float learning_rate_min;
