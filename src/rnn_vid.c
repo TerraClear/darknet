@@ -19,11 +19,11 @@ float_pair get_rnn_vid_data(network net, char **files, int n, int batch, int ste
     assert(net.batch == steps + 1);
     image out_im = get_network_image(net);
     int output_size = out_im.w*out_im.h*out_im.c;
-    fprintf(stderr, "%d %d %d\n", out_im.w, out_im.h, out_im.c);
-    float* feats = (float*)calloc(net.batch * batch * output_size, sizeof(float));
+    printf("%d %d %d\n", out_im.w, out_im.h, out_im.c);
+    float* feats = (float*)xcalloc(net.batch * batch * output_size, sizeof(float));
     for(b = 0; b < batch; ++b){
         int input_size = net.w*net.h*net.c;
-        float* input = (float*)calloc(input_size * net.batch, sizeof(float));
+        float* input = (float*)xcalloc(input_size * net.batch, sizeof(float));
         char *filename = files[rand()%n];
         cap_cv *cap = get_capture_video_stream(filename);
         int frames = get_capture_frame_count_cv(cap);
@@ -60,7 +60,7 @@ float_pair get_rnn_vid_data(network net, char **files, int n, int batch, int ste
         release_capture(cap); //cvReleaseCapture(&cap);
     }
 
-    //fprintf(stderr, "%d %d %d\n", out_im.w, out_im.h, out_im.c);
+    //printf("%d %d %d\n", out_im.w, out_im.h, out_im.c);
     float_pair p = {0};
     p.x = feats;
     p.y = feats + output_size*batch; //+ out_im.w*out_im.h*out_im.c;
@@ -75,13 +75,13 @@ void train_vid_rnn(char *cfgfile, char *weightfile)
     char* backup_directory = "backup/";
     srand(time(0));
     char *base = basecfg(cfgfile);
-    fprintf(stderr, "%s\n", base);
+    printf("%s\n", base);
     float avg_loss = -1;
     network net = parse_network_cfg(cfgfile);
     if(weightfile){
         load_weights(&net, weightfile);
     }
-    fprintf(stderr, "Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
+    printf("Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
     int imgs = net.batch*net.subdivisions;
     int i = *net.seen/imgs;
 
@@ -167,11 +167,11 @@ void generate_vid_rnn(char *cfgfile, char *weightfile)
         image re = resize_image(im, extractor.w, extractor.h);
         feat = network_predict(extractor, re.data);
         if(i > 0){
-            fprintf(stderr, "%f %f\n", mean_array(feat, 14*14*512), variance_array(feat, 14*14*512));
-            fprintf(stderr, "%f %f\n", mean_array(next, 14*14*512), variance_array(next, 14*14*512));
-            fprintf(stderr, "%f\n", mse_array(feat, 14*14*512));
+            printf("%f %f\n", mean_array(feat, 14*14*512), variance_array(feat, 14*14*512));
+            printf("%f %f\n", mean_array(next, 14*14*512), variance_array(next, 14*14*512));
+            printf("%f\n", mse_array(feat, 14*14*512));
             axpy_cpu(14*14*512, -1, feat, 1, next, 1);
-            fprintf(stderr, "%f\n", mse_array(next, 14*14*512));
+            printf("%f\n", mse_array(next, 14*14*512));
         }
         next = network_predict(net, feat);
 
